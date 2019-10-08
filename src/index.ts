@@ -1,6 +1,5 @@
-const PLUGIN_NAME = "@wallneradam/output_auto_scroll";
 const KEY = "output_auto_scroll";
-const TOOLBAR_POSITION = 9;
+const PLUGIN_NAME = `@wallneradam/${KEY}`;
 
 import { IDisposable, DisposableDelegate } from '@phosphor/disposable';
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
@@ -24,24 +23,24 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
         this.notebook = panel.content;
 
         // Callback of the button
-        let callback = () => {
+        let cbBtnAutoScroll = () => {
             // Toggle button state (selected - not selected)
-            if (button.hasClass('selected')) button.removeClass('selected');
-            else button.addClass('selected');
+            if (btnAutoScroll.hasClass('selected')) btnAutoScroll.removeClass('selected');
+            else btnAutoScroll.addClass('selected');
             // Store the state in notebook's metadata
-            this.notebook.model.metadata.set(KEY, button.hasClass('selected'));
-        };
+            this.notebook.model.metadata.set(KEY, btnAutoScroll.hasClass('selected'));
+        }
 
         // Create a toolbar button
-        let button = new ToolbarButton({
-            className: 'btnAutoScroll selected',
+        let btnAutoScroll = new ToolbarButton({
+            className: 'btnAutoScroll',
             iconClassName: 'wll-ScrollIcon',
-            onClick: callback,
+            onClick: cbBtnAutoScroll,
             tooltip: 'Output auto scroll on/off'
         });
 
         // Insert as last toolbar button (before spacer)
-        panel.toolbar.insertBefore('spacer', KEY, button);
+        panel.toolbar.insertBefore('spacer', KEY, btnAutoScroll);
 
         // Connect to cell change signal, to be able to detect if otutput cells changed
         this.notebook.model.cells.changed.connect(this.onCellsChanged, this);
@@ -49,13 +48,12 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
         // Wait for notebook is ready
         context.ready.then(() => {
             // Restore the button's state from notebook's metadata
-            if (context.model.metadata.get(KEY)) button.addClass('selected');
-            panel.toolbar.insertItem(TOOLBAR_POSITION, 'autoScroll', button);
+            if (context.model.metadata.get(KEY)) btnAutoScroll.addClass('selected');
         });
 
         // Return a delegate which can dispose our created button
         return new DisposableDelegate(() => {
-            button.dispose();
+            btnAutoScroll.dispose();
         });
     }
 
