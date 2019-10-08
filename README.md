@@ -2,7 +2,7 @@
 
 Automatically scrolls scrollable output cells to bottom when content has changed.
 
-It creates toolbar button: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16 13h-3V3h-2v10H8l4 4 4-4zM4 19v2h16v-2H4z"/><path d="M0 0h24v24H0z" fill="none"/></svg> . The button is selectable (2 state). If it is switched on, the outputs will be pinned to the bottom. If it is off, outputs won't scrolled automatically.
+It creates toolbar button: <img src="https://raw.githubusercontent.com/wallneradam/jupyterlab-output-auto-scroll/master/style/vertical_align_bottom.svg?sanitize=true" > . The button is selectable (2 state). If it is switched on, the outputs will be pinned to the bottom. If it is off, outputs won't scrolled automatically.
 
 It can scroll normal outputs and cloned output views as well.
 
