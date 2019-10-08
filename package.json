@@ -1,6 +1,6 @@
 {
   "name": "@wallneradam/output_auto_scroll",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Automatically scrolls scrollable output cells to bottom when content has changed",
   "keywords": [
     "jupyter",
