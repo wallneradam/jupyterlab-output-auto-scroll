@@ -132,7 +132,7 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
                         let autoScrollEnabled = this.notebook.model.metadata.get(KEY);
                         // If the change type is 'set', the output has changed.
                         // Check if scroll and auto scroll is enabled in metadata
-                        if (['add'].includes(arg.type) &&
+                        if (['add', 'set'].includes(arg.type) &&
                             cellModel.metadata.get("scrolled") && autoScrollEnabled) {
 
                             // Find the widget for the model.
