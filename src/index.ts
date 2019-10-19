@@ -10,6 +10,10 @@ import { IObservableList } from '@jupyterlab/observables';
 import { ToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
 import { each } from '@phosphor/algorithm';
 import { SimplifiedOutputArea } from '@jupyterlab/outputarea';
+import { ResizeObserver, install as install_resizeObserver } from 'resize-observer';
+
+// Install ResizeObserver polyfill if needed
+if (!('ResizeObserver' in window)) install_resizeObserver();
 
 
 /**
@@ -17,6 +21,8 @@ import { SimplifiedOutputArea } from '@jupyterlab/outputarea';
  */
 class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPanel, INotebookModel> {
     private notebook: Notebook;
+    private resizeObserver: ResizeObserver;
+    private resizeObserverOutputView: ResizeObserver;
 
     createNew(panel: NotebookPanel, context: DocumentRegistry.IContext<INotebookModel>): IDisposable {
         // The content of the notebook panel will be the actual notebook object
@@ -51,9 +57,64 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
             if (context.model.metadata.get(KEY)) btnAutoScroll.addClass('selected');
         });
 
+        // Observer to detect HTML element resize events
+        this.resizeObserver = new ResizeObserver(entries => {
+            // Scroll to bottom of the parent
+            let parent = entries[0].target.parentElement;
+            parent.scrollTop = parent.scrollHeight;
+        });
+        // Resize events for cloned outputs
+        this.resizeObserverOutputView = new ResizeObserver(entries => {
+            // Scroll to bottom of the parent
+            let parent = entries[0].target.parentElement;
+            this.clonedOutputScroll(parent);
+        });
+
         // Return a delegate which can dispose our created button
         return new DisposableDelegate(() => {
             btnAutoScroll.dispose();
+        });
+    }
+
+    private clonedOutputScroll(node: HTMLElement) {
+        let sum = 0;
+        // We need this because the normal node is not scrollable here :-/
+        let firstChild = node.children[0];
+        for (let i = 0; i < node.children.length; i++)
+            sum += node.children[i].scrollHeight;
+        firstChild.scrollTop = sum
+        // WHY????!!! - It needed when we have multiple outputs (e.g. exception)
+        if (firstChild.scrollTop == 0) node.scrollTop = sum;
+    }
+
+    //TODO: there must be a better way!!
+    private scrollOutputViews(codeCell: CodeCell) {
+        each(this.notebook.parent.parent.layout, widget => {
+            if (widget instanceof MainAreaWidget) {
+                each(widget.layout, widget => {
+                    // Find cloned output view
+                    if (widget.constructor.name == 'ClonedOutputArea') {
+                        each(widget.layout, widget => {
+                            // Check if we found a view with same model
+                            if (widget instanceof SimplifiedOutputArea &&
+                                widget.model == codeCell.outputArea.model) {
+                                let node = widget.node;
+
+                                // We don't have the last results added here :-/, so we need to wait for the next cycle
+                                setTimeout(() => {
+                                    this.clonedOutputScroll(node);
+                                });
+
+                                // Detect size changes
+                                for (let i = 0; i < node.children.length; i++) {
+                                    this.resizeObserverOutputView.unobserve(node.children[i]);
+                                    this.resizeObserverOutputView.observe(node.children[i]);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
         });
     }
 
@@ -71,45 +132,28 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
                         let autoScrollEnabled = this.notebook.model.metadata.get(KEY);
                         // If the change type is 'set', the output has changed.
                         // Check if scroll and auto scroll is enabled in metadata
-                        if (['add', 'set'].includes(arg.type) &&
+                        if (['add'].includes(arg.type) &&
                             cellModel.metadata.get("scrolled") && autoScrollEnabled) {
 
                             // Find the widget for the model.
                             //TODO: is there any other method then iteration
                             for (let cell of this.notebook.widgets) {
                                 if (cell instanceof CodeCell && cell.model == cellModel) {
-                                    let codeCell: CodeCell = cell;
-
                                     // Scroll to bottom
-                                    codeCell.outputArea.node.scrollTop = codeCell.outputArea.node.scrollHeight;
+                                    cell.outputArea.node.scrollTop = cell.outputArea.node.scrollHeight;
+
+                                    // Place resize observer for output widgets
+                                    for (let widget of (cell as CodeCell).outputArea.widgets) {
+                                        this.resizeObserver.unobserve(widget.node);
+                                        (widget => {
+                                            setTimeout(() => {
+                                                this.resizeObserver.observe(widget.node);
+                                            });
+                                        })(widget);
+                                    }
 
                                     // Find output view widgets
-                                    //TODO: there must be a better way!!
-                                    each(this.notebook.parent.parent.layout, widget => {
-                                        if (widget instanceof MainAreaWidget) {
-                                            each(widget.layout, widget => {
-                                                if (widget.constructor.name == 'ClonedOutputArea') {
-                                                    each(widget.layout, widget => {
-                                                        if (widget instanceof SimplifiedOutputArea &&
-                                                            widget.model == codeCell.outputArea.model) {
-                                                            let node = widget.node;
-                                                            // We don't have the last results added here :-/
-                                                            setTimeout(() => {
-                                                                let sum = 0;
-                                                                // We need this because the normal node is not scrollable here :-/
-                                                                let firstChild = node.children[0];
-                                                                for (let i = 0; i < node.children.length; i++)
-                                                                    sum += node.children[i].scrollHeight;
-                                                                firstChild.scrollTop = sum
-                                                                // WHY????!!! - It needed when we have multiple outputs (e.g. exception)
-                                                                if (firstChild.scrollTop == 0) node.scrollTop = sum;
-                                                            });
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
+                                    this.scrollOutputViews(cell)
                                 }
                             }
                         }
