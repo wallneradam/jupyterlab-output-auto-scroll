@@ -19,12 +19,12 @@ if (!('ResizeObserver' in window)) install_resizeObserver();
 /**
  * Notebook panel extension
  */
-class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPanel, INotebookModel> {
+class OutputAutoScroll {
     private notebook: Notebook;
     private resizeObserver: ResizeObserver;
     private resizeObserverOutputView: ResizeObserver;
 
-    createNew(panel: NotebookPanel, context: DocumentRegistry.IContext<INotebookModel>): IDisposable {
+    createNew(panel: NotebookPanel): IDisposable {
         // The content of the notebook panel will be the actual notebook object
         this.notebook = panel.content;
 
@@ -52,9 +52,9 @@ class OutputAutoScroll implements DocumentRegistry.IWidgetExtension<NotebookPane
         this.notebook.model.cells.changed.connect(this.onCellsChanged, this);
 
         // Wait for notebook is ready
-        context.ready.then(() => {
+        panel.context.ready.then(() => {
             // Restore the button's state from notebook's metadata
-            if (context.model.metadata.get(KEY)) btnAutoScroll.addClass('selected');
+            if (panel.context.model.metadata.get(KEY)) btnAutoScroll.addClass('selected');
         });
 
         // Observer to detect HTML element resize events
@@ -171,7 +171,12 @@ const extension: JupyterFrontEndPlugin<void> = {
     activate: (app: JupyterFrontEnd) => {
         console.log('JupyterLab extension output_auto_scroll is activated!');
         // Register our extension
-        app.docRegistry.addWidgetExtension('notebook', new OutputAutoScroll);
+        app.docRegistry.addWidgetExtension('notebook', {
+            // Create new autoscroller for every document
+            createNew: (panel: NotebookPanel, context: DocumentRegistry.IContext<INotebookModel>): IDisposable => {
+                return new OutputAutoScroll().createNew(panel);
+            }
+        });
     }
 };
 
