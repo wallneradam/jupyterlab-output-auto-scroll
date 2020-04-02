@@ -1,14 +1,14 @@
 const KEY = "output_auto_scroll";
 const PLUGIN_NAME = `@wallneradam/${KEY}`;
 
-import { IDisposable, DisposableDelegate } from '@phosphor/disposable';
+import { IDisposable, DisposableDelegate } from '@lumino/disposable';
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
 import { NotebookPanel, INotebookModel, Notebook } from '@jupyterlab/notebook';
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 import { ICellModel, CodeCellModel, CodeCell } from '@jupyterlab/cells';
 import { IObservableList } from '@jupyterlab/observables';
 import { ToolbarButton, MainAreaWidget } from '@jupyterlab/apputils';
-import { each } from '@phosphor/algorithm';
+import { each } from '@lumino/algorithm';
 import { SimplifiedOutputArea } from '@jupyterlab/outputarea';
 import { ResizeObserver, install as install_resizeObserver } from 'resize-observer';
 
@@ -40,7 +40,7 @@ class OutputAutoScroll {
         // Create a toolbar button
         let btnAutoScroll = new ToolbarButton({
             className: 'btnAutoScroll',
-            iconClassName: 'wll-ScrollIcon',
+            iconClass: 'wll-ScrollIcon',
             onClick: cbBtnAutoScroll,
             tooltip: 'Output auto scroll on/off'
         });
